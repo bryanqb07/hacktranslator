@@ -10,8 +10,47 @@
     "temp" "TEMP"
    })
 
+
+(defn indirectly-addressed? [memory-sym] (contains? #{"SP" "LCL" "ARG" "THIS" "THAT"} memory-sym))
+
+(def temp-addr "@5")
+
+
+(defn handle-pointer-offset
+ [memory-sym f & fail-vals] 
+ (cond 
+   (indirectly-addressed? memory-sym) (f memory-sym)
+   (= "TEMP" memory-sym) (concat (list temp-addr) fail-vals)
+   :else "unknown"
+))
+
+
+;; (defn handle-pointer-offset
+;;  [memory-sym] 
+;;  (cond 
+;;    (indirectly-addressed? memory-sym) (load-pointer memory-sym)
+;;    (= "TEMP" memory-sym) (list temp-addr)
+;; ))
+
+
 (defn addr [value] (str "@" value))
 (defn load-pointer [pointer-sym] (list (addr pointer-sym) "A=M"))
+
+
+
+(defn load-pointer-val 
+  [pointer-sym exp]
+  (concat (load-pointer pointer-sym) (list exp) )
+)
+
+(defn d-into-pointer [pointer-sym] (load-pointer-val pointer-sym "M=D"))
+(defn pointer-into-d [pointer-sym] (load-pointer-val pointer-sym "D=M"))
+(defn pointer-into-ad [pointer-sym] (load-pointer-val pointer-sym "D=A"))
+
+
+(defn get-pointer-offset-pop [memory-sym] (handle-pointer-offset memory-sym load-pointer))
+(defn get-pointer-offset-push [memory-sym] (handle-pointer-offset memory-sym pointer-into-ad "D=A"))
+
 
 (defn join-strings
   [strings]
@@ -33,16 +72,6 @@
 (def sp++ (increment-pointer "SP"))
 (def sp-- (decrement-pointer "SP"))
 
-(defn load-pointer-val 
-  [pointer-sym expr]
-  (concat (load-pointer pointer-sym) (list expr) )
-)
-
-
-(defn d-into-pointer [pointer-sym] (load-pointer-val pointer-sym "M=D"))
-(defn pointer-into-d [pointer-sym] (load-pointer-val pointer-sym "D=M"))
-(defn pointer-into-ad [pointer-sym] (load-pointer-val pointer-sym "D=A"))
-
 
 (defn load-val  [value] (list (addr value) "D=A"))
 
@@ -60,7 +89,7 @@
 (defn push-with-offset 
   [memory-sym, offset] 
   (concat
-   (pointer-into-ad memory-sym)
+   (get-pointer-offset-push memory-sym)
    (offset-d offset)
    '("A=D" "D=M")
    (d-into-pointer "SP")
@@ -154,22 +183,10 @@
 
 (defn inc-addr [times] (repeat (Integer/parseInt times) "A=A+1"))
 
-
-(defn indirectly-addressed? [memory-sym] (contains? #{"SP" "LCL" "ARG" "THIS" "THAT"} memory-sym))
-
-(def temp-addr "@5")
-
-(defn handle-pointer-offset
- [memory-sym] 
- (cond 
-   (indirectly-addressed? memory-sym) (load-pointer memory-sym)
-   (= "TEMP" memory-sym) (list temp-addr)
-))
-
 (defn handle-pop-offset
   [memory-sym, offset]
   (concat
-   (handle-pointer-offset memory-sym)
+   (get-pointer-offset-pop memory-sym)
    (inc-addr offset)
    '("M=D")
 ))

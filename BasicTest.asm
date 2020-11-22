@@ -256,8 +256,7 @@ M=D
 @SP
 M=M+1
 // PUSH push temp 6
-@TEMP
-A=M
+@5
 D=A
 @6
 D=D+A
