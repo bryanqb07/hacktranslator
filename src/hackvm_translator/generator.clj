@@ -38,8 +38,11 @@
   (concat (load-pointer pointer-sym) (list expr) )
 )
 
+
 (defn d-into-pointer [pointer-sym] (load-pointer-val pointer-sym "M=D"))
 (defn pointer-into-d [pointer-sym] (load-pointer-val pointer-sym "D=M"))
+(defn pointer-into-ad [pointer-sym] (load-pointer-val pointer-sym "D=A"))
+
 
 (defn load-val  [value] (list (addr value) "D=A"))
 
@@ -52,11 +55,14 @@
    )
 )
 
+(defn offset-d [offset] (list (addr offset) "D=D+A"))
 
 (defn push-with-offset 
   [memory-sym, offset] 
   (concat
-   (list (addr memory-sym) (str "A=M+" offset) "D=M")
+   (pointer-into-ad memory-sym)
+   (offset-d offset)
+   '("A=D" "D=M")
    (d-into-pointer "SP")
    sp++
 ))
@@ -134,7 +140,7 @@
 
 (defn call 
   [fname & args]
-  (when-let [fun (ns-resolve *ns* (symbol fname))]
+  (when-let [fun (ns-resolve 'hackvm-translator.generator (symbol fname))]
     (apply fun args)
 ))
 
@@ -145,13 +151,51 @@
   (let [memory-sym (get memory-symbols memory-id)]
     (push-val memory-sym value)))
 
+
+(defn inc-addr [times] (repeat (Integer/parseInt times) "A=A+1"))
+
+
+(defn indirectly-addressed? [memory-sym] (contains? #{"SP" "LCL" "ARG" "THIS" "THAT"} memory-sym))
+
+(def temp-addr "@5")
+
+(defn handle-pointer-offset
+ [memory-sym] 
+ (cond 
+   (indirectly-addressed? memory-sym) (load-pointer memory-sym)
+   (= "TEMP" memory-sym) (list temp-addr)
+))
+
+(defn handle-pop-offset
+  [memory-sym, offset]
+  (concat
+   (handle-pointer-offset memory-sym)
+   (inc-addr offset)
+   '("M=D")
+))
+
+(defn pop-val
+  [memory-sym offset]
+  (concat
+   sp--
+   (pointer-into-d "SP")
+   (handle-pop-offset memory-sym offset)
+   )
+)
+
+(defn handle-pop-command
+  [[memory-id value]]
+  (let [memory-sym (get memory-symbols memory-id)]
+    (pop-val memory-sym value)))
+
+
 (defn process-command
   [[command-type & command]]
   (case command-type
     "ARITHMETIC" (handle-arith-command (first command))
     "PUSH" (handle-push-command (rest command))
-    "POP" (rest command)
-    "unknown"
+    "POP" (handle-pop-command (rest command))
+    (list "this is an unknown command")
     ))
 
 

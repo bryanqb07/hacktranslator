@@ -7,8 +7,14 @@ M=D
 @SP
 M=M+1
 // POP pop local 0
-local
-0
+@SP
+M=M-1
+@SP
+A=M
+D=M
+@LCL
+A=M
+M=D
 // PUSH push constant 21
 @21
 D=A
@@ -26,11 +32,26 @@ M=D
 @SP
 M=M+1
 // POP pop argument 2
-argument
-2
+@SP
+M=M-1
+@SP
+A=M
+D=M
+@ARG
+A=M
+A=A+1
+A=A+1
+M=D
 // POP pop argument 1
-argument
-1
+@SP
+M=M-1
+@SP
+A=M
+D=M
+@ARG
+A=M
+A=A+1
+M=D
 // PUSH push constant 36
 @36
 D=A
@@ -40,8 +61,20 @@ M=D
 @SP
 M=M+1
 // POP pop this 6
-this
-6
+@SP
+M=M-1
+@SP
+A=M
+D=M
+@THIS
+A=M
+A=A+1
+A=A+1
+A=A+1
+A=A+1
+A=A+1
+A=A+1
+M=D
 // PUSH push constant 42
 @42
 D=A
@@ -59,11 +92,30 @@ M=D
 @SP
 M=M+1
 // POP pop that 5
-that
-5
+@SP
+M=M-1
+@SP
+A=M
+D=M
+@THAT
+A=M
+A=A+1
+A=A+1
+A=A+1
+A=A+1
+A=A+1
+M=D
 // POP pop that 2
-that
-2
+@SP
+M=M-1
+@SP
+A=M
+D=M
+@THAT
+A=M
+A=A+1
+A=A+1
+M=D
 // PUSH push constant 510
 @510
 D=A
@@ -73,11 +125,26 @@ M=D
 @SP
 M=M+1
 // POP pop temp 6
-temp
-6
+@SP
+M=M-1
+@SP
+A=M
+D=M
+@5
+A=A+1
+A=A+1
+A=A+1
+A=A+1
+A=A+1
+A=A+1
+M=D
 // PUSH push local 0
 @LCL
-A=M+0
+A=M
+D=A
+@0
+D=D+A
+A=D
 D=M
 @SP
 A=M
@@ -86,7 +153,11 @@ M=D
 M=M+1
 // PUSH push that 5
 @THAT
-A=M+5
+A=M
+D=A
+@5
+D=D+A
+A=D
 D=M
 @SP
 A=M
@@ -94,9 +165,25 @@ M=D
 @SP
 M=M+1
 // ARITHMETIC add
+@SP
+M=M-1
+@SP
+A=M
+D=M
+@SP
+M=M-1
+A=M
+D=D+M
+M=D
+@SP
+M=M+1
 // PUSH push argument 1
 @ARG
-A=M+1
+A=M
+D=A
+@1
+D=D+A
+A=D
 D=M
 @SP
 A=M
@@ -104,9 +191,25 @@ M=D
 @SP
 M=M+1
 // ARITHMETIC sub
+@SP
+M=M-1
+@SP
+A=M
+D=M
+@SP
+M=M-1
+A=M
+D=M-D
+M=D
+@SP
+M=M+1
 // PUSH push this 6
 @THIS
-A=M+6
+A=M
+D=A
+@6
+D=D+A
+A=D
 D=M
 @SP
 A=M
@@ -115,7 +218,11 @@ M=D
 M=M+1
 // PUSH push this 6
 @THIS
-A=M+6
+A=M
+D=A
+@6
+D=D+A
+A=D
 D=M
 @SP
 A=M
@@ -123,10 +230,38 @@ M=D
 @SP
 M=M+1
 // ARITHMETIC add
+@SP
+M=M-1
+@SP
+A=M
+D=M
+@SP
+M=M-1
+A=M
+D=D+M
+M=D
+@SP
+M=M+1
 // ARITHMETIC sub
+@SP
+M=M-1
+@SP
+A=M
+D=M
+@SP
+M=M-1
+A=M
+D=M-D
+M=D
+@SP
+M=M+1
 // PUSH push temp 6
 @TEMP
-A=M+6
+A=M
+D=A
+@6
+D=D+A
+A=D
 D=M
 @SP
 A=M
@@ -134,3 +269,15 @@ M=D
 @SP
 M=M+1
 // ARITHMETIC add
+@SP
+M=M-1
+@SP
+A=M
+D=M
+@SP
+M=M-1
+A=M
+D=D+M
+M=D
+@SP
+M=M+1
