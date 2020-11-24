@@ -17,7 +17,6 @@
 
 (def temp-addr "@5")
 
-
 (defn handle-pointer-offset
  [memory-sym f & fail-vals] 
  (cond 
@@ -45,7 +44,6 @@
 
 (defn split-command [command] (s/split command #" "))
 
-
 (defn change-pointer
   [pointer-sym, func]
   (list (addr pointer-sym) (str "M=M" func 1)))
@@ -64,13 +62,7 @@
 
 (defn load-val  [value] (list (addr value) "D=A"))
 
-(defn push-constant-val
-  [value]
-  (concat 
-   (load-val value)
-   (push-sp)
-   )
-)
+(defn push-constant-val [value] (load-val value))
 
 (defn offset-d [offset] (list (addr offset) "D=D+A"))
 
@@ -80,7 +72,6 @@
    (get-pointer-offset-push memory-sym)
    (offset-d offset)
    '("A=D" "D=M")
-   (push-sp)
 ))
 
 (defn get-file-title [] 
@@ -94,11 +85,7 @@
 ))
 
 
-(defn push-static
-  [offset]
-  (concat
-   (list (generate-static-label offset) "D=M")
-   (push-sp)))
+(defn push-static [offset] (list (generate-static-label offset) "D=M"))
 
 (defn pointer-addr [value] 
   (if (= "0" value) 
@@ -106,18 +93,14 @@
     "@THAT"
  ))
 
-(defn push-pointer 
-  [value]
-  (concat
-   (cons (pointer-addr value) '("D=M"))
-   (push-sp)
-))
+(defn push-pointer [value] (cons (pointer-addr value) '("D=M")))
 
 (defn offsetable? [memory-sym] (contains?  #{"LCL" "ARG" "THIS" "THAT" "TEMP"} memory-sym))
 
-(defn push-nonconstant-val
+(defn handle-push-val
   [memory-sym offset]
   (cond
+    (= "SP memory-sym") (push-constant-val offset)
     (offsetable? memory-sym) (push-with-offset memory-sym offset)
     (= "PTR" memory-sym) (push-pointer offset)
     (= "STATIC" memory-sym) (push-static offset)
@@ -126,9 +109,9 @@
 
 (defn push-val
   [memory-sym value]
-  (if (= "SP" memory-sym)
-    (push-constant-val value)
-    (push-nonconstant-val memory-sym value)
+  (concat 
+   (handle-push-val memory-sym value)
+   (push-sp)
 ))
 
 (defn d-into-m [expr] (list "A=M" (str "D=" expr) "M=D"))
@@ -218,8 +201,6 @@
     "STATIC" (handle-static-offset-pop offset)
     (get-offset memory-sym offset) ; default
 ))
-
-
 
 (defn pop-val
   [memory-sym offset]
