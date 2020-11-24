@@ -1,6 +1,13 @@
 (ns hackvm-translator.generator
     (:require [clojure.string :as s]))
 
+
+; vars + helpers
+
+(defn join-strings [strings] (s/join "\n" strings))
+(defn split-command [command] (s/split command #" "))
+
+
 (def memory-symbols
   { "constant" "SP"
     "local" "LCL"
@@ -14,6 +21,7 @@
 
 
 (defn indirectly-addressed? [memory-sym] (contains? #{"SP" "LCL" "ARG" "THIS" "THAT"} memory-sym))
+(defn offsetable? [memory-sym] (contains?  #{"LCL" "ARG" "THIS" "THAT" "TEMP"} memory-sym))
 
 (def temp-addr "@5")
 
@@ -24,7 +32,6 @@
    (= "TEMP" memory-sym) (concat (list temp-addr) fail-vals)
    :else "unknown"
 ))
-
 
 (defn addr [value] (str "@" value))
 (defn load-pointer [pointer-sym] (list (addr pointer-sym) "A=M"))
@@ -39,10 +46,6 @@
 (defn pointer-into-ad [pointer-sym] (load-pointer-val pointer-sym "D=A"))
 (defn get-pointer-offset-pop [memory-sym] (handle-pointer-offset memory-sym load-pointer))
 (defn get-pointer-offset-push [memory-sym] (handle-pointer-offset memory-sym pointer-into-ad "D=A"))
-
-(defn join-strings [strings] (s/join "\n" strings))
-
-(defn split-command [command] (s/split command #" "))
 
 (defn change-pointer
   [pointer-sym, func]
@@ -60,19 +63,7 @@
 (defn pop-sp [] (concat sp-- D=*SP))
 (defn push-sp [] (concat *SP=D sp++))
 
-(defn load-val  [value] (list (addr value) "D=A"))
-
-(defn push-constant-val [value] (load-val value))
-
 (defn offset-d [offset] (list (addr offset) "D=D+A"))
-
-(defn push-with-offset 
-  [memory-sym, offset] 
-  (concat
-   (get-pointer-offset-push memory-sym)
-   (offset-d offset)
-   '("A=D" "D=M")
-))
 
 (defn get-file-title [] 
   (let [filename (eval 'hackvm-translator.core/filename)] 
@@ -84,39 +75,19 @@
       (str (addr filename) "." offset)
 ))
 
-
-(defn push-static [offset] (list (generate-static-label offset) "D=M"))
-
 (defn pointer-addr [value] 
   (if (= "0" value) 
     "@THIS"
     "@THAT"
  ))
 
-(defn push-pointer [value] (cons (pointer-addr value) '("D=M")))
-
-(defn offsetable? [memory-sym] (contains?  #{"LCL" "ARG" "THIS" "THAT" "TEMP"} memory-sym))
-
-(defn handle-push-val
-  [memory-sym offset]
-  (cond
-    (= "SP memory-sym") (push-constant-val offset)
-    (offsetable? memory-sym) (push-with-offset memory-sym offset)
-    (= "PTR" memory-sym) (push-pointer offset)
-    (= "STATIC" memory-sym) (push-static offset)
-    :else "unknown"
-))
-
-(defn push-val
-  [memory-sym value]
-  (concat 
-   (handle-push-val memory-sym value)
-   (push-sp)
-))
 
 (defn d-into-m [expr] (list "A=M" (str "D=" expr) "M=D"))
 (defn transform-m [func] (list "A=M" (str "M=" func "M")))
 (defn label [value] (str "(" value ")"))
+
+
+;; Logical commands
 
 (def counter (atom -1))
 
@@ -176,11 +147,54 @@
 
 (defn handle-arith-command [command] (call (str "a_" command)))
 
+
+; Push commands
+
+(defn push-constatnt-val  [value] (list (addr value) "D=A"))
+
+(defn push-with-offset 
+  [memory-sym, offset] 
+  (concat
+   (get-pointer-offset-push memory-sym)
+   (offset-d offset)
+   '("A=D" "D=M")
+))
+
+(defn push-static [offset] (list (generate-static-label offset) "D=M"))
+
+(defn pointer-addr [value] 
+  (if (= "0" value) 
+    "@THIS"
+    "@THAT"
+ ))
+
+(defn push-pointer [value] (cons (pointer-addr value) '("D=M")))
+
+(defn handle-push-val
+  [memory-sym offset]
+  (cond
+    (= "SP memory-sym") (push-constant-val offset)
+    (offsetable? memory-sym) (push-with-offset memory-sym offset)
+    (= "PTR" memory-sym) (push-pointer offset)
+    (= "STATIC" memory-sym) (push-static offset)
+    :else "unknown"
+))
+
+(defn push-val
+  [memory-sym value]
+  (concat 
+   (handle-push-val memory-sym value)
+   (push-sp)
+))
+
+
 (defn handle-push-command
   [[memory-id value]]
   (let [memory-sym (get memory-symbols memory-id)]
     (push-val memory-sym value)))
 
+
+;; Pop Commands
 
 (defn inc-addr [times] (repeat (Integer/parseInt times) "A=A+1"))
 
@@ -215,6 +229,7 @@
   (let [memory-sym (get memory-symbols memory-id)]
     (pop-val memory-sym value)))
 
+;; Main drivers
 
 (defn process-command
   [[command-type & command]]
