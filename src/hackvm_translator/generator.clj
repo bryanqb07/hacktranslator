@@ -8,6 +8,8 @@
     "this" "THIS"
     "that" "THAT"
     "temp" "TEMP"
+    "pointer" "PTR"
+    "static" "STATIC"
    })
 
 
@@ -35,8 +37,6 @@
 
 (defn addr [value] (str "@" value))
 (defn load-pointer [pointer-sym] (list (addr pointer-sym) "A=M"))
-
-
 
 (defn load-pointer-val 
   [pointer-sym exp]
@@ -96,12 +96,35 @@
    sp++
 ))
 
-(defn offsetable? [memory-sym] #{"LCL" "ARG" "THIS" "THAT" "TEMP"})
+
+
+(defn push-static
+  [value]
+  "do later"
+)
+
+(defn pointer-addr [value] 
+  (if (= "0" value) 
+    "@THIS"
+    "@THAT"
+ ))
+
+(defn push-pointer 
+  [value]
+  (concat
+   (cons (pointer-addr value) '("D=M"))
+   (d-into-pointer "SP")
+   sp++
+))
+
+(defn offsetable? [memory-sym] (contains?  #{"LCL" "ARG" "THIS" "THAT" "TEMP"} memory-sym))
 
 (defn push-nonconstant-val
   [memory-sym offset]
   (cond
     (offsetable? memory-sym) (push-with-offset memory-sym offset)
+    (= "PTR" memory-sym) (push-pointer offset)
+    (= "STATIC" memory-sym) (push-static offset)
     :else "unknown"
 ))
 
@@ -183,13 +206,25 @@
 
 (defn inc-addr [times] (repeat (Integer/parseInt times) "A=A+1"))
 
-(defn handle-pop-offset
+(defn get-offset
   [memory-sym, offset]
   (concat
    (get-pointer-offset-pop memory-sym)
    (inc-addr offset)
    '("M=D")
 ))
+
+
+(defn handle-static-offset-pop [offset] "") ; Fix me!
+
+(defn handle-pop-offset
+  [memory-sym offset]
+  (case memory-sym
+    "PTR" (cons (pointer-addr offset)'("M=D"))
+    "STATIC" (handle-static-offset-pop offset)
+    (get-offset memory-sym offset) ; default
+))
+
 
 (defn pop-val
   [memory-sym offset]
