@@ -27,14 +27,6 @@
 ))
 
 
-;; (defn handle-pointer-offset
-;;  [memory-sym] 
-;;  (cond 
-;;    (indirectly-addressed? memory-sym) (load-pointer memory-sym)
-;;    (= "TEMP" memory-sym) (list temp-addr)
-;; ))
-
-
 (defn addr [value] (str "@" value))
 (defn load-pointer [pointer-sym] (list (addr pointer-sym) "A=M"))
 
@@ -46,19 +38,12 @@
 (defn d-into-pointer [pointer-sym] (load-pointer-val pointer-sym "M=D"))
 (defn pointer-into-d [pointer-sym] (load-pointer-val pointer-sym "D=M"))
 (defn pointer-into-ad [pointer-sym] (load-pointer-val pointer-sym "D=A"))
-
-
 (defn get-pointer-offset-pop [memory-sym] (handle-pointer-offset memory-sym load-pointer))
 (defn get-pointer-offset-push [memory-sym] (handle-pointer-offset memory-sym pointer-into-ad "D=A"))
 
+(defn join-strings [strings] (s/join "\n" strings))
 
-(defn join-strings
-  [strings]
-  (s/join "\n" strings))
-
-(defn split-command
-  [command]
-  (s/split command #" "))
+(defn split-command [command] (s/split command #" "))
 
 
 (defn change-pointer
@@ -71,7 +56,11 @@
 
 (def sp++ (increment-pointer "SP"))
 (def sp-- (decrement-pointer "SP"))
+(def D=*SP (pointer-into-d "SP"))
+(def *SP=D (d-into-pointer "SP"))
 
+(defn pop-sp [] (concat sp-- D=*SP))
+(defn push-sp [] (concat *SP=D sp++))
 
 (defn load-val  [value] (list (addr value) "D=A"))
 
@@ -79,8 +68,7 @@
   [value]
   (concat 
    (load-val value)
-   (d-into-pointer "SP")
-   sp++   
+   (push-sp)
    )
 )
 
@@ -92,16 +80,25 @@
    (get-pointer-offset-push memory-sym)
    (offset-d offset)
    '("A=D" "D=M")
-   (d-into-pointer "SP")
-   sp++
+   (push-sp)
+))
+
+(defn get-file-title [] 
+  (let [filename (eval 'hackvm-translator.core/filename)] 
+    (first (s/split filename #".vm"))))
+
+(defn generate-static-label
+  [offset]
+  (let [filename (get-file-title)]
+      (str (addr filename) "." offset)
 ))
 
 
-
 (defn push-static
-  [value]
-  "do later"
-)
+  [offset]
+  (concat
+   (list (generate-static-label offset) "D=M")
+   (push-sp)))
 
 (defn pointer-addr [value] 
   (if (= "0" value) 
@@ -113,8 +110,7 @@
   [value]
   (concat
    (cons (pointer-addr value) '("D=M"))
-   (d-into-pointer "SP")
-   sp++
+   (push-sp)
 ))
 
 (defn offsetable? [memory-sym] (contains?  #{"LCL" "ARG" "THIS" "THAT" "TEMP"} memory-sym))
@@ -161,8 +157,7 @@
 (defn arithmetic-pop
   [func op]
   (concat
-   sp--
-   (pointer-into-d "SP")
+   (pop-sp)
    sp--
    (func op)
    sp++
@@ -214,8 +209,7 @@
    '("M=D")
 ))
 
-
-(defn handle-static-offset-pop [offset] "") ; Fix me!
+(defn handle-static-offset-pop [offset] (list (generate-static-label offset) "M=D"))
 
 (defn handle-pop-offset
   [memory-sym offset]
@@ -226,11 +220,11 @@
 ))
 
 
+
 (defn pop-val
   [memory-sym offset]
   (concat
-   sp--
-   (pointer-into-d "SP")
+   (pop-sp)
    (handle-pop-offset memory-sym offset)
    )
 )

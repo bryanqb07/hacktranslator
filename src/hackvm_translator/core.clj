@@ -5,7 +5,7 @@
   (:gen-class))
 
 
-(def filename "PointerTest.vm")
+(def filename "StaticTest.vm")
 
 (defn -asm-file-name
   [filename]
