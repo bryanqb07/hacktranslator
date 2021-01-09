@@ -12,12 +12,27 @@
   [line]
   (or (= line "") (s/starts-with? line "//")))
 
+
+(defn strip-line
+  [line]
+  (let [split-line (s/split line #" ") skip-rest (atom 0)]
+    (reduce
+     (fn [acc, cv]
+       (if (or (= cv "//") (= cv ""))
+         (swap! skip-rest inc))
+         (if (> @skip-rest 0)
+           acc
+           (conj acc (s/trim cv)))
+       )
+     []
+     split-line
+     )
+))
+
 (defn trim-file
   [filename]
   (let [lines (split-file filename)]
-    (map #(s/split % #" ") (remove skip-line? lines))))
-
-
+    (map strip-line (remove skip-line? lines))))
 
 (defn x-command?
   [command command-name len cb]
@@ -35,7 +50,9 @@
     (get-command  "" 1 arithmetic-command?) "ARITHMETIC"
     (get-command "push" 3 command-name-eq?) "PUSH"
     (get-command "pop" 3 command-name-eq?) "POP"
-    (get-command "label" 3 command-name-eq?) "LABEL"
+    (get-command "label" 2 command-name-eq?) "LABEL"
+    (get-command "goto" 2 command-name-eq?) "GOTO"
+    (get-command "if-goto" 2 command-name-eq?) "IF-GOTO"
     :else "unknown")
    )
 )
