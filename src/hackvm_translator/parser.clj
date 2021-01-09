@@ -17,31 +17,28 @@
   (let [lines (split-file filename)]
     (map #(s/split % #" ") (remove skip-line? lines))))
 
-(defn arithmetic-command?
-  [command]
-  (and 
-   (= 1 (count command))
-   (contains? arith-commands (first command))))
 
-(defn push-command?
-  [command]
-  (and 
-   (= 3 (count command))
-   (= (first command) "push")))
 
-(defn pop-command?
-  [command]
-  (and 
-   (= 3 (count command))
-   (= (first command) "pop")))
+(defn x-command?
+  [command command-name len cb]
+  (and
+   (= len (count command))
+   (cb command command-name)))
+
+(defn command-name-eq? [command command-name] (= (first command) command-name))
+(defn arithmetic-command? [command _] (contains? arith-commands (first command)))
 
 (defn command-type
   [command]
+  (let [get-command (partial x-command? command)]
   (cond
-    (arithmetic-command? command) "ARITHMETIC"
-    (push-command? command) "PUSH"
-    (pop-command? command) "POP"
-    :else "unknown"))
+    (get-command  "" 1 arithmetic-command?) "ARITHMETIC"
+    (get-command "push" 3 command-name-eq?) "PUSH"
+    (get-command "pop" 3 command-name-eq?) "POP"
+    (get-command "label" 3 command-name-eq?) "LABEL"
+    :else "unknown")
+   )
+)
 
 (defn get-commands-from-file
   [filename]

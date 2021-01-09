@@ -5,7 +5,7 @@
   (:gen-class))
 
 
-(def filename "StaticTest.vm")
+(def filename "BasicLoop.vm")
 
 (defn -asm-file-name
   [filename]
