@@ -5,8 +5,6 @@
 
 ; vars + helpers
 
-(def test (parser/get-commands-from-file "BasicLoop.vm")) ; delete later!
-
 (defn join-strings [strings] (s/join "\n" strings))
 (defn split-command [command] (s/split command #" "))
 
