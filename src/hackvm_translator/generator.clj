@@ -1,8 +1,11 @@
 (ns hackvm-translator.generator
-    (:require [clojure.string :as s]))
+    (:require [clojure.string :as s]
+              [hackvm-translator.parser :as parser]))
 
 
 ; vars + helpers
+
+(def test (parser/get-commands-from-file "BasicLoop.vm")) ; delete later!
 
 (defn join-strings [strings] (s/join "\n" strings))
 (defn split-command [command] (s/split command #" "))
@@ -150,7 +153,7 @@
 
 ; Push commands
 
-(defn push-constatnt-val  [value] (list (addr value) "D=A"))
+(defn push-constant-val  [value] (list (addr value) "D=A"))
 
 (defn push-with-offset 
   [memory-sym, offset] 
@@ -173,7 +176,7 @@
 (defn handle-push-val
   [memory-sym offset]
   (cond
-    (= "SP memory-sym") (push-constant-val offset)
+    (= "SP" memory-sym) (push-constant-val offset)
     (offsetable? memory-sym) (push-with-offset memory-sym offset)
     (= "PTR" memory-sym) (push-pointer offset)
     (= "STATIC" memory-sym) (push-static offset)
@@ -229,6 +232,15 @@
   (let [memory-sym (get memory-symbols memory-id)]
     (pop-val memory-sym value)))
 
+(defn goto [label] (list (addr label) "0; JMP"))
+
+(defn if-goto 
+  [label]
+  (concat 
+   (pop-sp)
+   (list (addr label) "D; JNE")
+))
+
 ;; Main drivers
 
 (defn process-command
@@ -237,6 +249,9 @@
     "ARITHMETIC" (handle-arith-command (first command))
     "PUSH" (handle-push-command (rest command))
     "POP" (handle-pop-command (rest command))
+    "LABEL" (list (str "(" (second command) ")"))
+    "GOTO" (goto (second command))
+    "IF-GOTO" (if-goto (second command))
     (list "this is an unknown command")
     ))
 
