@@ -53,6 +53,8 @@
     (get-command "label" 2 command-name-eq?) "LABEL"
     (get-command "goto" 2 command-name-eq?) "GOTO"
     (get-command "if-goto" 2 command-name-eq?) "IF-GOTO"
+    (get-command "function" 3 command-name-eq?) "FUNCTION"
+    (get-command "return" 1 command-name-eq?) "RETURN"
     :else "unknown")
    )
 )

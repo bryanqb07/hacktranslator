@@ -239,6 +239,57 @@
    (list (addr label) "D; JNE")
 ))
 
+(defn label
+  [name]
+  (str "(" name ")"))
+
+(defn push-local-var [] (concat '("@SP" "A=M" "M=0") sp++))
+
+(defn push-n-vars [nVars] (flatten (repeat (Integer/parseInt nVars) (push-local-var))))
+
+(defn handle-function 
+ [[fname nVars]]
+  (concat
+   (list (label fname))
+   (push-n-vars nVars)
+))
+
+(defn ef=LCL [] '("@LCL" "D=M" "@endframe" "M=D" "@5" "D=D-A" "@retAddr" "M=D"))
+
+(defn *ARG=POP []
+  (concat 
+   (pop-sp)
+   '("@ARG" "A=M" "M=D")
+   '("D=A" "D=D+1" "@SP" "M=D")
+))
+
+(defn restore-segment 
+  [[name offset]]
+  (list
+   "@endframe"
+   "D=M"
+   (addr offset)
+   "D=D-A"
+   "A=D"
+　 "D=M"
+   (addr name)
+   "M=D"))
+   
+
+(defn restore-caller-segments []
+  (mapcat restore-segment (partition 2 '("THAT" "1" "THIS" "2" "ARG" "3" "LCL" "4"))))
+  
+(defn goto-return [] '("@retAddr" "D=M" "A=D" "0; JMP"))
+
+
+(defn handle-return []
+  (concat
+   (ef=LCL)  ; ef = Endframe
+   (*ARG=POP)
+   (restore-caller-segments)
+   (goto-return)
+))
+
 ;; Main drivers
 
 (defn process-command
@@ -247,9 +298,11 @@
     "ARITHMETIC" (handle-arith-command (first command))
     "PUSH" (handle-push-command (rest command))
     "POP" (handle-pop-command (rest command))
-    "LABEL" (list (str "(" (second command) ")"))
+    "LABEL" (list (label (second command)))
     "GOTO" (goto (second command))
     "IF-GOTO" (if-goto (second command))
+    "FUNCTION" (handle-function (rest command))
+    "RETURN" (handle-return)
     (list "this is an unknown command")
     ))
 

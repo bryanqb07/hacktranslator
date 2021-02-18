@@ -5,7 +5,7 @@
   (:gen-class))
 
 
-(def filename "FibonacciSeries.vm")
+(def filename "SimpleFunction.vm")
 
 (defn -asm-file-name
   [filename]
